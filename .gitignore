@@ -1,0 +1,5 @@
+node_modules/
+dist/
+.env
+customers.json.bak
+/backend/config/customers.json

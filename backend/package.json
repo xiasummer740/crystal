@@ -1,0 +1,16 @@
+{
+  "name": "crystal-backend",
+  "version": "1.0.0",
+  "main": "server.js",
+  "dependencies": {
+    "axios": "^1.13.6",
+    "cheerio": "^1.2.0",
+    "cors": "^2.8.6",
+    "dotenv": "^16.4.5",
+    "express": "^4.22.1",
+    "form-data": "^4.0.5",
+    "iconv-lite": "^0.7.2",
+    "multer": "^2.1.1",
+    "pdfreader": "^3.0.8"
+  }
+}

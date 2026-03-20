@@ -1,0 +1,115 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --fluid-x: 50%;
+  --fluid-y: 50%;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  background-color: #f8fafc;
+  overflow-x: hidden;
+  color: #1e293b;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: 
+    radial-gradient(circle at var(--fluid-x) var(--fluid-y), rgba(147, 197, 253, 0.4) 0%, transparent 40%),
+    radial-gradient(circle at 20% 80%, rgba(196, 181, 253, 0.3) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(167, 243, 208, 0.3) 0%, transparent 50%);
+  z-index: -1;
+  transition: background 0.1s ease-out;
+  pointer-events: none;
+}
+
+.glass-panel {
+  background: rgba(255, 255, 255, 0.75) !important;
+  backdrop-filter: blur(20px) saturate(150%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(150%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.9) !important;
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.06) !important;
+}
+
+.glass-hover-fx {
+  transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+.glass-hover-fx:hover {
+  background: rgba(255, 255, 255, 0.95) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 15px 35px rgba(56, 189, 248, 0.12) !important;
+}
+
+.wave-trail {
+  position: fixed;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(96, 165, 250, 0.4) 0%, rgba(147, 197, 253, 0) 70%);
+  pointer-events: none;
+  transform: translate(-50%, -50%) scale(0.2);
+  animation: waveTrailAnim 1.2s ease-out forwards;
+  z-index: -1;
+}
+@keyframes waveTrailAnim {
+  0% { transform: translate(-50%, -50%) scale(0.2); opacity: 0.8; }
+  100% { transform: translate(-50%, -50%) scale(3); opacity: 0; }
+}
+
+/* 【核心修复 3】：加深滑鼠（点击水波纹）的颜色浓度和持续时间，让涟漪更加显著 */
+.mouse-ripple {
+  position: absolute;
+  border-radius: 50%;
+  transform: scale(0);
+  animation: clickRipple 0.8s ease-out;
+  background-color: rgba(37, 99, 235, 0.35); /* 大幅加深了蓝色的不透明度 */
+  pointer-events: none;
+  z-index: 50;
+}
+@keyframes clickRipple {
+  to { transform: scale(2.5); opacity: 0; }
+}
+
+.premium-glass {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.6) 100%) !important;
+  backdrop-filter: blur(24px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.8) !important;
+  box-shadow: 0 10px 40px -10px rgba(31, 38, 135, 0.15), inset 0 2px 4px rgba(255, 255, 255, 0.7) !important;
+}
+
+@keyframes cyber-scan {
+   0% { transform: translateX(-150%); }
+   100% { transform: translateX(300%); }
+}
+.animate-cyber-scan {
+   animation: cyber-scan 2.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.text-gradient-fluid {
+  background: linear-gradient(to right, #1d4ed8, #4338ca, #0e7490, #1d4ed8); /* 加深了标题的渐变颜色 */
+  background-size: 200% auto;
+  color: transparent;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: shine 4s linear infinite;
+}
+@keyframes shine {
+  to { background-position: 200% center; }
+}
+
+/* 【终极防御】：强制对抗 Tailwind 的 img 初始化样式，确保地图瓦片 100% 展开！ */
+.leaflet-container .leaflet-layer img, 
+.leaflet-container .leaflet-tile-pane img, 
+.leaflet-container .leaflet-tile {
+    max-width: none !important;
+    max-height: none !important;
+    width: 256px !important;
+    height: 256px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
