@@ -1,91 +1,85 @@
 #!/bin/bash
-# Crystal Radar Auto Installer
 set -e
+
+# Force Unix line endings and basic locale
+export LANG=C
+export LC_ALL=C
 
 clear
 echo "========================================================="
-echo " Crystal Radar 智能自动部署系统启动"
+echo " Crystal Radar - Auto Deployment Engine"
 echo "========================================================="
 echo ""
-read -p "👉 请输入您要绑定的域名 [例如 crystal.taikon.top，如果没有请填 IP]: " DOMAIN_NAME
+read -p "Please input your Domain [eg: crystal.taikon.top, or IP]: " DOMAIN_NAME
 if [ -z "$DOMAIN_NAME" ]; then
     DOMAIN_NAME="localhost"
 fi
 
 PROJECT_DIR="$PWD"
-echo -e "\n⏳ 收到指令！开始为您建造雷达基站..."
+echo "Starting deployment..."
 
-echo "⚙️ [1/4] 正在安装底层运行环境 [Nginx & 依赖]..."
+echo "[1/4] Installing Base Environment (Nginx & Curl)..."
 if [ -f /etc/debian_version ]; then
-    apt-get update -y
-    apt-get install -y curl wget git unzip nginx
+    apt-get update -y >/dev/null 2>&1
+    apt-get install -y curl wget git unzip nginx >/dev/null 2>&1
 elif [ -f /etc/redhat-release ]; then
-    yum install -y epel-release
-    yum install -y curl wget git unzip nginx
-    systemctl enable nginx
+    yum install -y epel-release >/dev/null 2>&1
+    yum install -y curl wget git unzip nginx >/dev/null 2>&1
+    systemctl enable nginx >/dev/null 2>&1 || true
 fi
 
-echo "⚙️ [2/4] 正在安装 Node.js 引擎与 PM2 守护进程..."
-if ! type node > /dev/null 2>&1; then
-    curl -fsSL [https://deb.nodesource.com/setup_20.x](https://deb.nodesource.com/setup_20.x) | bash -
-    apt-get install -y nodejs || yum install -y nodejs
+echo "[2/4] Installing Node.js & PM2..."
+curl -fsSL [https://deb.nodesource.com/setup_20.x](https://deb.nodesource.com/setup_20.x) | bash - >/dev/null 2>&1
+if [ -f /etc/debian_version ]; then
+    apt-get install -y nodejs >/dev/null 2>&1
+else
+    yum install -y nodejs >/dev/null 2>&1
 fi
-if ! type pm2 > /dev/null 2>&1; then
-    npm install pm2 -g
-fi
+npm install pm2 -g >/dev/null 2>&1 || true
 
-echo "📦 [3/4] 正在编译并点燃前后端引擎 [请耐心等待 1-2 分钟]..."
+echo "[3/4] Compiling Core Engines (Taking 1-2 mins)..."
 cd "$PROJECT_DIR/backend"
-npm install
-pm2 stop crystal-api || true
-pm2 start ./index.js --name "crystal-api"
-pm2 save
+npm install >/dev/null 2>&1
+pm2 stop crystal-api >/dev/null 2>&1 || true
+pm2 start ./index.js --name "crystal-api" >/dev/null 2>&1
+pm2 save >/dev/null 2>&1 || true
 
 cd "$PROJECT_DIR/frontend"
-npm install
-npm run build
+npm install >/dev/null 2>&1
+npm run build >/dev/null 2>&1
 
-echo "🌐 [4/4] 正在为您全自动配置 Nginx 反向代理与域名映射..."
+echo "[4/4] Configuring Nginx Routing..."
 NGINX_CONF="/etc/nginx/conf.d/crystal.conf"
 
-cat << EOF_NGINX > "$NGINX_CONF"
-server {
-    listen 80;
-    server_name $DOMAIN_NAME;
+echo "server {" > "$NGINX_CONF"
+echo "    listen 80;" >> "$NGINX_CONF"
+echo "    server_name $DOMAIN_NAME;" >> "$NGINX_CONF"
+echo "    location / {" >> "$NGINX_CONF"
+echo "        root $PROJECT_DIR/frontend/dist;" >> "$NGINX_CONF"
+echo "        index index.html;" >> "$NGINX_CONF"
+echo "        try_files \$uri \$uri/ /index.html;" >> "$NGINX_CONF"
+echo "    }" >> "$NGINX_CONF"
+echo "    location /api/ {" >> "$NGINX_CONF"
+echo "        proxy_pass [http://127.0.0.1:3000/](http://127.0.0.1:3000/);" >> "$NGINX_CONF"
+echo "        proxy_set_header Host \$host;" >> "$NGINX_CONF"
+echo "        proxy_set_header X-Real-IP \$remote_addr;" >> "$NGINX_CONF"
+echo "        proxy_buffering off;" >> "$NGINX_CONF"
+echo "        proxy_read_timeout 300s;" >> "$NGINX_CONF"
+echo "    }" >> "$NGINX_CONF"
+echo "}" >> "$NGINX_CONF"
 
-    location / {
-        root $PROJECT_DIR/frontend/dist;
-        index index.html index.htm;
-        try_files \$uri \$uri/ /index.html;
-    }
-
-    location /api/ {
-        proxy_pass [http://127.0.0.1:3000/](http://127.0.0.1:3000/);
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-        
-        proxy_buffering off;
-        proxy_read_timeout 300s;
-    }
-}
-EOF_NGINX
-
-# 移除默认配置防冲突
 if [ -f /etc/nginx/sites-enabled/default ]; then
     rm -f /etc/nginx/sites-enabled/default
 fi
 
-systemctl restart nginx
+systemctl restart nginx >/dev/null 2>&1 || true
 
 clear
 echo "========================================================="
-echo " 🎉 晶振智能雷达部署大功告成！"
+echo " Deployment Successful!"
+echo " URL: http://$DOMAIN_NAME"
 echo "========================================================="
-echo " 🌐 您的专属访问地址: http://$DOMAIN_NAME"
-echo ""
-echo " 👉 下一步操作："
-echo " 1. 请在浏览器打开上述网址。"
-echo " 2. 点击右上角【配置】，填入您的 AI 密钥即可使用！"
+echo " Next Steps:"
+echo " 1. Open the URL in your browser."
+echo " 2. Click 'Config' (Top Right) to set your API Key."
 echo "========================================================="
