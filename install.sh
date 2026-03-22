@@ -9,7 +9,7 @@ echo "============================================="
 echo " Crystal Radar - Secure Deployment "
 echo "============================================="
 echo ""
-read -p "Input Domain or IP [eg: crystal.taikon.top]: " DOMAIN_NAME
+read -p "Input Domain or IP [eg: 154.31.157.42]: " DOMAIN_NAME
 if [ -z "$DOMAIN_NAME" ]; then DOMAIN_NAME="localhost"; fi
 
 PROJECT_DIR="/var/www/crystal"
@@ -65,7 +65,6 @@ npm install >/dev/null 2>&1
 npm run build >/dev/null 2>&1
 
 echo "[6/6] Generating SSL Cert & Isolated Nginx Config..."
-# 自动生成十年有效期的自签证书
 mkdir -p /etc/nginx/ssl
 openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
   -keyout /etc/nginx/ssl/crystal.key \
@@ -75,33 +74,35 @@ openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
 mkdir -p /etc/nginx/conf.d
 CONF_FILE="/etc/nginx/conf.d/crystal.conf"
 
-# 【核心防爆】：逐行写入，绝对隔离回车符，且不删除其他项目配置
-echo "server {" > "$CONF_FILE"
-echo "    listen 80;" >> "$CONF_FILE"
-echo "    server_name $DOMAIN_NAME;" >> "$CONF_FILE"
-echo "    return 301 https://\$host\$request_uri;" >> "$CONF_FILE"
-echo "}" >> "$CONF_FILE"
-echo "server {" >> "$CONF_FILE"
-echo "    listen 443 ssl;" >> "$CONF_FILE"
-echo "    server_name $DOMAIN_NAME;" >> "$CONF_FILE"
-echo "    ssl_certificate /etc/nginx/ssl/crystal.crt;" >> "$CONF_FILE"
-echo "    ssl_certificate_key /etc/nginx/ssl/crystal.key;" >> "$CONF_FILE"
-echo "    location / {" >> "$CONF_FILE"
-echo "        root $PROJECT_DIR/frontend/dist;" >> "$CONF_FILE"
-echo "        index index.html;" >> "$CONF_FILE"
-echo "        try_files \$uri \$uri/ /index.html;" >> "$CONF_FILE"
-echo "    }" >> "$CONF_FILE"
-echo "    location /api/ {" >> "$CONF_FILE"
-echo "        proxy_pass [http://127.0.0.1:3000/](http://127.0.0.1:3000/);" >> "$CONF_FILE"
-echo "        proxy_set_header Host \$host;" >> "$CONF_FILE"
-echo "        proxy_set_header X-Real-IP \$remote_addr;" >> "$CONF_FILE"
-echo "        proxy_buffering off;" >> "$CONF_FILE"
-echo "        proxy_read_timeout 300s;" >> "$CONF_FILE"
-echo "    }" >> "$CONF_FILE"
-echo "}" >> "$CONF_FILE"
+# 【核心防爆 2】：同样使用 tr -d '\r' 彻底粉碎 Nginx 配置中的回车符
+cat << 'EOF_NGINX' | tr -d '\r' > "$CONF_FILE"
+server {
+    listen 80;
+    server_name _DOMAIN_;
+    return 301 https://$host$request_uri;
+}
+server {
+    listen 443 ssl;
+    server_name _DOMAIN_;
+    ssl_certificate /etc/nginx/ssl/crystal.crt;
+    ssl_certificate_key /etc/nginx/ssl/crystal.key;
+    location / {
+        root _ROOT_/frontend/dist;
+        index index.html;
+        try_files $uri $uri/ /index.html;
+    }
+    location /api/ {
+        proxy_pass [http://127.0.0.1:3000](http://127.0.0.1:3000);
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_buffering off;
+        proxy_read_timeout 300s;
+    }
+}
+EOF_NGINX
 
-# 清洗自身可能的杂质
-sed -i 's/\r//g' "$CONF_FILE"
+sed -i "s|_DOMAIN_|$DOMAIN_NAME|g" "$CONF_FILE"
+sed -i "s|_ROOT_|$PROJECT_DIR|g" "$CONF_FILE"
 
 nginx -t || { echo "Nginx syntax error! Check $CONF_FILE"; exit 1; }
 systemctl restart nginx || true
