@@ -2,31 +2,22 @@
 
 > 一款专为 B2B 硬件销售打造的**商业情报狙击 SaaS 系统**。采用顶级流体毛玻璃视觉，结合 AI 与官网物理强扒引擎，实现秒级企业研报与图文缝合。
 
-## 🚀 终极傻瓜式一键部署
+## 🚀 终极小白“无脑一行流”部署法
 
-无论您购买的是阿里云、腾讯云还是海外的纯净 VPS（Ubuntu/Debian/CentOS 均可），完全不需要懂编程或 Nginx 配置，只需两步即可点亮雷达：
+**无需预装 Git，无需懂代码！** 只要您购买了一台**全新的 Ubuntu/Debian/CentOS 服务器**，请直接全选复制下方这一整段“上帝指令”，粘贴到您的服务器终端并回车：
 
-### 步骤 1：下载雷达源码
-登录您的全新 VPS 终端，执行克隆命令下载代码（请确保服务器已安装 git）：
 ```bash
-git clone https://github.com/您的用户名/crystal.git
-cd crystal
+if [ -f /etc/debian_version ]; then apt-get update -y && apt-get install -y git curl; else yum install -y git curl; fi && rm -rf /var/www/crystal && git clone -b crystal https://github.com/xiasummer740/crystal.git /var/www/crystal && cd /var/www/crystal && bash install.sh
 ```
 
-### 步骤 2：执行全自动交互式安装
-在代码目录中运行一键安装脚本：
-```bash
-sudo bash install.sh
-```
-> **安装向导会自动问您：**
-> 👉 `请输入您要绑定的域名 (如果没有请填 IP):` 
-> 输入您解析好的域名（如 `radar.yourdomain.com`）并回车。
+> **执行后，终端会自动询问：**
+> 👉 `Input Domain or IP [eg: 154.31.157.42]:` 
+> 输入您解析好的域名（或直接输入 IP）并回车。
+> 接下来请去喝杯咖啡（约2分钟），系统会自动完成 Git安装、源码下载、Node.js 20 升级、Nginx 路由接管和进程守护！
 
-喝口水的时间（约 2 分钟），脚本会自动为您安装底层环境、配置 Nginx 路由代理、映射 3000 端口并启动防爆守护进程。
-
-### 步骤 3：唤醒 AI 神经元
-在浏览器输入您刚才绑定的域名，进入系统。
-点击右上角的 **【配置】** 按钮，填入您的 API Key（支持 DeepSeek / 阿里千问 / OpenAI等），点击保存，雷达即可正式发车！
+## 💡 唤醒 AI 神经元
+在浏览器输入您刚才绑定的域名或 IP，进入系统。
+点击右上角的 **【配置】** 按钮，填入您的 API Key（推荐使用 DeepSeek / OpenAI 等），点击保存，雷达即可开火！
 
 ## ✨ 核心杀手锏
 1. **零外援·官网底层强扒**：穿透 Vue/React 懒加载，提取真图与产品交叉缝合。
