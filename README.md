@@ -18,5 +18,6 @@ if [ -f /etc/debian_version ]; then apt-get update -y && apt-get install -y git 
 cd /var/www/crystal && bash install.sh
 ```
 > **安装向导会自动问您：**
-> 👉 `Input Domain or IP:` 输入您的 IP 回车即可。
+> 👉 `Input Domain or IP [eg: 198.51.100.1]:` 
+> 输入您解析好的域名或当前服务器 IP，回车即可。
 > 系统将自动分配虚拟内存、放行防火墙并编译雷达。
