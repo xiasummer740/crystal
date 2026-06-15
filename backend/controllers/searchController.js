@@ -50,6 +50,17 @@ function safeParseJSON(str) {
     return null;
 }
 
+// SSRF: Validate URL before fetching
+function isSafeUrl(urlStr) {
+  try {
+    const url = new URL(urlStr);
+    const blockedHosts = ['127.0.0.1', 'localhost', '0.0.0.0', '[::1]', '::1'];
+    const blockedPrefixes = ['10.', '172.16.', '172.17.', '172.18.', '172.19.', '172.20.', '172.21.', '172.22.', '172.23.', '172.24.', '172.25.', '172.26.', '172.27.', '172.28.', '172.29.', '172.30.', '172.31.', '192.168.'];
+    const host = url.hostname.toLowerCase();
+    return !blockedHosts.includes(host) && !blockedPrefixes.some(p => host.startsWith(p));
+  } catch { return false; }
+}
+
 const scrapeDirectSite = async (website, domain) => {
     let content = "";
     let urlsToTry = [];
@@ -67,6 +78,7 @@ const scrapeDirectSite = async (website, domain) => {
     }
 
     for (let u of urlsToTry) {
+        if (!isSafeUrl(u)) continue;
         try {
             const controller = new AbortController();
             const id = setTimeout(() => controller.abort(), 6000);
@@ -120,6 +132,7 @@ const scrapeDirectSite = async (website, domain) => {
 const fetchMatrixQuery = async (query, limit = 5) => {
     try {
         const url = `https://cn.bing.com/search?q=${encodeURIComponent(query)}`;
+        if (!isSafeUrl(url)) return '';
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 5000);
         const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: controller.signal });
@@ -387,6 +400,13 @@ const proxyImage = (req, res) => {
 
         // 安全校验：只代理图片请求，拦截 SSRF
         const host = urlObj.hostname;
+        // SSRF 防护：禁止内网地址
+        const blockedHosts = ['127.0.0.1', 'localhost', '0.0.0.0', '[::1]', '::1'];
+        const blockedPrefixes = ['10.', '172.16.', '172.17.', '172.18.', '172.19.', '172.20.', '172.21.', '172.22.', '172.23.', '172.24.', '172.25.', '172.26.', '172.27.', '172.28.', '172.29.', '172.30.', '172.31.', '192.168.'];
+        if (blockedHosts.includes(host.toLowerCase()) || blockedPrefixes.some(p => host.startsWith(p))) {
+          return res.status(200).end();
+        }
+
         const isAllowed = ALLOWED_IMAGE_HOSTS.some(prefix => host.startsWith(prefix))
             || /\.(png|jpg|jpeg|gif|svg|webp|bmp)$/i.test(urlObj.pathname);
 
