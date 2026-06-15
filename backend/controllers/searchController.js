@@ -156,6 +156,44 @@ const readConfig = () => {
     }
 };
 
+// 请求去重锁
+const pendingSearches = new Map();
+const SEARCH_LOCK_TTL = 120 * 1000;
+
+function acquireSearchLock(key) {
+  if (pendingSearches.has(key)) {
+    const elapsed = Date.now() - pendingSearches.get(key);
+    if (elapsed < SEARCH_LOCK_TTL) return false;
+  }
+  pendingSearches.set(key, Date.now());
+  return true;
+}
+
+function releaseSearchLock(key) {
+  pendingSearches.delete(key);
+}
+
+// 搜索结果缓存（24小时）
+const searchCache = new Map();
+const CACHE_TTL = 24 * 60 * 60 * 1000;
+
+function getCachedResult(key) {
+  const cached = searchCache.get(key);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    return cached.data;
+  }
+  searchCache.delete(key);
+  return null;
+}
+
+function setCachedResult(key, data) {
+  if (searchCache.size > 100) {
+    const oldest = searchCache.keys().next().value;
+    searchCache.delete(oldest);
+  }
+  searchCache.set(key, { data, timestamp: Date.now() });
+}
+
 const SYSTEM_PROMPT = `你是电子行业商业分析师。你的任务是根据企业公开信息，分析其晶振（谐振器/振荡器）需求，输出结构化JSON。
 
 ## 输出规则（严格遵守）
@@ -234,6 +272,24 @@ const searchLead = async (req, res) => {
         const config = readConfig();
         if (!config || !config.apiKey) { sendEvent({ error: '请先在设置中配置 API Key！' }); return res.end(); }
 
+        // 请求去重
+        const lockKey = companyName.trim();
+        if (!acquireSearchLock(lockKey)) {
+          sendEvent({ error: '该公司正在搜索中，请勿重复提交' });
+          return res.end();
+        }
+        res.on('close', () => releaseSearchLock(lockKey));
+        res.on('finish', () => releaseSearchLock(lockKey));
+
+        // 检查缓存
+        const cachedData = getCachedResult(lockKey);
+        if (cachedData) {
+          sendEvent({ status: '命中缓存，直接返回上次结果' });
+          sendEvent({ fullData: cachedData });
+          res.write('data: [DONE]\n\n');
+          return res.end();
+        }
+
         let targetDomain = website ? website.replace(/^(?:https?:\/\/)?(?:www\.)?/i, "").split('/')[0] : '';
         const exact = `"${companyName}"`;
 
@@ -307,6 +363,8 @@ ${b2b_trade || ""}`;
             resultData.coordinates = [39.9042, 116.4074];
         }
 
+        // 写入缓存
+        setCachedResult(lockKey, resultData);
         sendEvent({ fullData: resultData });
         res.write('data: [DONE]\n\n');
         res.end();
